@@ -46,7 +46,8 @@ def upload_file(file):
 
     new_filename = f"{name}_{timestamp}{ext}"
 
-    os.makedirs("assets")
+    if not os.path.exists("assets"):
+        os.makedirs("assets")
 
     dest_path = os.path.join("assets", new_filename)
 

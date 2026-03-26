@@ -1,7 +1,7 @@
 import gradio as gr
 from services.ocr import upload_file, ocr, ocr_languages
 from services.interleave import interleave_text
-from services.translation import translation_languages, translation
+from services.translation import translation_languages, translation, default_translation_lang
 from services.transliteration import transliterate_languages, indic_transliteration
 
 
@@ -36,7 +36,7 @@ with gr.Blocks(title="LMX", analytics_enabled=True) as interface:
                 ocr_output = gr.TextArea(label="Output", lines=15 ,interactive=False)
 
         with gr.Row():
-            clear_btn = gr.ClearButton(value="Clear", variant="secondary")
+            clear_btn = gr.ClearButton(value="Clear", variant="secondary", components=[ocr_image_url, ocr_file, ocr_output])
             ocr_submit_btn = gr.Button(value="Run", variant="huggingface")
 
         ocr_submit_btn.click(fn=ocr, inputs=[ocr_image_url, ocr_languages], outputs=ocr_output)
@@ -52,7 +52,7 @@ with gr.Blocks(title="LMX", analytics_enabled=True) as interface:
                 transliteration_output_area = gr.TextArea(label="Output", interactive=False)
     
         with gr.Row():
-            clear_btn = gr.ClearButton(value="Clear", variant="secondary")
+            clear_btn = gr.ClearButton(value="Clear", variant="secondary", components=[transliteration_input_area, transliteration_output_area])
             transliteration_submit_btn = gr.Button(value="Run", variant="huggingface")
         
         transliteration_submit_btn.click(fn=indic_transliteration, inputs=[transliteration_src_lang, transliteration_trgt_lang, transliteration_input_area], outputs=transliteration_output_area)
@@ -67,10 +67,10 @@ with gr.Blocks(title="LMX", analytics_enabled=True) as interface:
                 translation_output_area = gr.TextArea(label="Output", interactive=False)
     
         with gr.Row():
-            clear_btn = gr.ClearButton(value="Clear", variant="secondary")
+            translation_clear_btn = gr.ClearButton(value="Clear", variant="secondary", components=[translation_input_area, translation_output_area])
             translation_submit_btn = gr.Button(value="Run", variant="huggingface")  
 
-        translation_submit_btn.click(fn=translation, inputs=[translation_src_lang, translation_trgt_lang, translation_input_area], outputs=translation_output_area) 
+        translation_submit_btn.click(fn=translation, inputs=[translation_src_lang, translation_trgt_lang, translation_input_area], outputs=translation_output_area)
 
     with gr.Tab("Interleave"):
         with gr.Row():
@@ -78,7 +78,7 @@ with gr.Blocks(title="LMX", analytics_enabled=True) as interface:
             interleave_input2_area = gr.TextArea(label="Second Input", type="text")
 
         with gr.Row():
-            clear_btn = gr.ClearButton(value="Clear", variant="secondary")
+            interleave_clear_btn = gr.ClearButton(value="Clear", variant="secondary", components=[interleave_input_area, interleave_input2_area])
             interleave_submit_btn = gr.Button(value="Run" ,variant="huggingface")    
 
         with gr.Row():
@@ -89,4 +89,6 @@ with gr.Blocks(title="LMX", analytics_enabled=True) as interface:
         gr.HTML(html_template=html_footer)
 
 if __name__ == "__main__":
-    interface.launch(pwa=True, share=True, allowed_paths=["assets", "bmc"])
+    interface.launch(pwa=True, share=True, 
+                     allowed_paths=["assets", "bmc"], 
+                     enable_monitoring=True)

@@ -310,6 +310,8 @@ languages_iso_codes: dict = {
     "Zulu": "zu"
 }
 
+default_translation_lang = translation_languages[0]
+
 
 def translation(src_lang:str, trgt_lang:str, text:str) -> str:
 
