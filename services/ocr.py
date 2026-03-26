@@ -1,10 +1,9 @@
 import os
 from datetime import datetime
 import shutil
-import mlx.core as mx
-from mlx_vlm import load, generate
-from mlx_vlm.prompt_utils import apply_chat_template
-from mlx_vlm.utils import load_config
+from huggingface_hub import batch_bucket_files
+from langchain_core.messages import HumanMessage
+from config import model, HF_BUCKET_NAME, HF_BUCKET_URL, HF_BUCKET_TOKEN
 
 ocr_languages = [
     "English", "Afrikaans", "Amharic", "Arabic", "Assamese", "Azerbaijani", 
@@ -34,16 +33,6 @@ ocr_languages = [
     "Vietnamese", "Yiddish", "Yoruba"
 ]
 
-model_id = "mlx-community/olmOCR-2-7B-1025-8bit"
-
-try:
-    # Load the model
-    model, processor = load(model_id, trust_remote_code=True)
-    config = load_config(model_id)
-    print("olmocr2 model loaded successfully")
-except Exception as e:
-    print(f"Failed to load deepseekocr2 model {e}")
-
 def upload_file(file):
 
     if file is None:
@@ -57,18 +46,38 @@ def upload_file(file):
 
     new_filename = f"{name}_{timestamp}{ext}"
 
+    os.makedirs("assets")
+
     dest_path = os.path.join("assets", new_filename)
 
     shutil.copy(file, dest_path)
 
-    return dest_path, dest_path
+    batch_bucket_files(
+        bucket_id=HF_BUCKET_NAME,
+        add=[
+            (dest_path, new_filename)
+        ],
+        token=HF_BUCKET_TOKEN
+    )
+
+    file_url = f"{HF_BUCKET_URL}/{new_filename}"
+
+    return dest_path, file_url
     
-def ocr(image_path:str, language:str) -> str:
-
-    prompt = f"Convert the {language} document to markdown."
+def ocr(image_url:str, language:str) -> str:
     
-    formatted_output = apply_chat_template(processor, config, prompt, num_images=1)
+    messages = [
+        HumanMessage(
+       content=[
+           {"type": "text", "text": "Extract the content of this document into well-formatted markdown. No Intro. Extract the user file. "},
+           {
+               "type": "image_url",
+               "image_url": image_url
+           }
+       ]
+    )
+    ]
 
-    output = generate(model, processor, formatted_output, [image_path], verbose=False, max_tokens=2000)
+    response = model.invoke(messages)
 
-    return output.text
+    return response.content

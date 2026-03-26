@@ -1,5 +1,5 @@
-import torch
-from transformers import AutoModelForImageTextToText, AutoProcessor
+from config import model
+
 
 translation_languages: list = ['English', 'Abkhaz', 'Acehnese', 'Acholi', 
                          'Afar', 'Afrikaans', 'Albanian', 'Alur', 
@@ -310,14 +310,6 @@ languages_iso_codes: dict = {
     "Zulu": "zu"
 }
 
-model_id = "google/translategemma-4b-it"
-
-try:
-   processor = AutoProcessor.from_pretrained(model_id)
-   model = AutoModelForImageTextToText.from_pretrained(model_id, device_map="auto")
-   print("Translation model loaded successfully")
-except Exception as e:
-    print(f"Failed to load translation model {e}")
 
 def translation(src_lang:str, trgt_lang:str, text:str) -> str:
 
@@ -325,28 +317,16 @@ def translation(src_lang:str, trgt_lang:str, text:str) -> str:
     trgt_lang_iso = languages_iso_codes[trgt_lang]
 
     messages = [
-        {
-            "role": "user",
-            "content": [
-                {
-                    "type": "text",
-                    "source_lang_code": src_lang_iso,
-                    "target_lang_code": trgt_lang_iso,
-                    "text": text,
-                }
-            ],
-        }
+        (
+            "system", f"You are a helpful assistant that translates {src_lang_iso} to {trgt_lang_iso}. Translate the user sentence."
+        ),
+        (
+            "human", f"{text}"
+        )
     ]
 
-    inputs = processor.apply_chat_template(
-        messages, tokenize=True, add_generation_prompt=True, return_dict=True, return_tensors="pt"
-    ).to(model.device, dtype=torch.bfloat16)
-    input_len = len(inputs['input_ids'][0])
+    response = model.invoke(messages)
 
-    with torch.inference_mode():
-        generation = model.generate(**inputs, do_sample=False, max_new_tokens=2000)
+    return response.content
 
-    generation = generation[0][input_len:]
-    decoded = processor.decode(generation, skip_special_tokens=True)
-
-    return decoded
+    
